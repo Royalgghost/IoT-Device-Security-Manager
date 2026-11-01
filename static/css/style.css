@@ -1,0 +1,241 @@
+/* ==========================================================================
+   IoT Device Security Manager - Modern Cyber Dark Theme
+   ========================================================================== */
+
+:root {
+    --cyber-bg: #090d16;
+    --cyber-card: #0f172a;
+    --cyber-card-hover: #17233d;
+    --cyber-input: #0b1120;
+    --cyber-pill: #1e293b;
+    --cyber-border: rgba(148, 163, 184, 0.15);
+    --cyber-neon: #10b981;
+    --cyber-neon-glow: rgba(16, 185, 129, 0.25);
+    --cyber-cyan: #06b6d4;
+    --cyber-danger: #ef4444;
+    --cyber-warning: #f59e0b;
+    --cyber-info: #3b82f6;
+    --cyber-text-main: #f8fafc;
+    --cyber-text-muted: #94a3b8;
+}
+
+body {
+    background-color: var(--cyber-bg);
+    color: var(--cyber-text-main);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    letter-spacing: -0.01em;
+}
+
+.bg-cyber-dark {
+    background-color: var(--cyber-bg) !important;
+}
+
+.bg-cyber-card {
+    background-color: var(--cyber-card) !important;
+}
+
+.bg-cyber-pill {
+    background-color: var(--cyber-pill) !important;
+}
+
+.bg-cyber-input {
+    background-color: var(--cyber-input) !important;
+}
+
+.bg-cyber-tag {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: var(--cyber-neon);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.border-cyber-subtle {
+    border-color: var(--cyber-border) !important;
+}
+
+.text-cyber-neon {
+    color: var(--cyber-neon) !important;
+}
+
+.text-xs {
+    font-size: 0.75rem;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.tracking-wide {
+    letter-spacing: 0.05em;
+}
+
+.tracking-wider {
+    letter-spacing: 0.08em;
+}
+
+/* ==========================================================================
+   Buttons & Controls
+   ========================================================================== */
+
+.btn-cyber-primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    border: none;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.btn-cyber-primary:hover {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    color: #ffffff;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+    transform: translateY(-1px);
+}
+
+.btn-outline-cyber {
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: var(--cyber-neon);
+    background: rgba(16, 185, 129, 0.05);
+    transition: all 0.2s ease;
+}
+
+.btn-outline-cyber:hover {
+    background: var(--cyber-neon);
+    color: #0b1120;
+    box-shadow: 0 0 12px var(--cyber-neon-glow);
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: var(--cyber-input);
+    border-color: var(--cyber-neon);
+    color: #ffffff;
+    box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.15);
+}
+
+/* ==========================================================================
+   Status & Risk Badges
+   ========================================================================== */
+
+.badge-critical {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.badge-high {
+    background-color: rgba(245, 158, 11, 0.2) !important;
+    color: #fbbf24 !important;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.badge-medium {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    color: #60a5fa !important;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.badge-low {
+    background-color: rgba(148, 163, 184, 0.2) !important;
+    color: #cbd5e1 !important;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.badge-secure {
+    background-color: rgba(16, 185, 129, 0.2) !important;
+    color: #34d399 !important;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+/* Status Indicator Dot */
+.status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-indicator.online {
+    background-color: var(--cyber-neon);
+    box-shadow: 0 0 8px var(--cyber-neon);
+}
+
+/* ==========================================================================
+   Stat Cards & Dashboard Elements
+   ========================================================================== */
+
+.stat-card {
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(148, 163, 184, 0.3) !important;
+}
+
+.stat-glow {
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 150px;
+    height: 150px;
+    pointer-events: none;
+    border-radius: 50%;
+}
+
+.shield-icon-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.hover-cyber-neon:hover {
+    color: var(--cyber-neon) !important;
+}
+
+/* ==========================================================================
+   Table & Lists
+   ========================================================================== */
+
+.table-cyber-head {
+    background-color: #0b1120 !important;
+}
+
+.table-dark {
+    --bs-table-bg: transparent;
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.02);
+}
+
+.device-avatar {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-cyber-gradient {
+    background: linear-gradient(90deg, #10b981 0%, #06b6d4 100%) !important;
+}
+
+/* ==========================================================================
+   Accordion Customization
+   ========================================================================== */
+
+.accordion-button:not(.collapsed) {
+    background-color: var(--cyber-card);
+    color: #ffffff;
+    box-shadow: none;
+}
+
+.accordion-button::after {
+    filter: invert(1);
+}

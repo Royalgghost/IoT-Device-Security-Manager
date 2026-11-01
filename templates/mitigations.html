@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Remediation Plan & Hardening | IoT Security Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+    <!-- Top Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h3 class="fw-bold text-white mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-shield-check text-cyber-neon"></i> IoT Security Remediation Roadmap
+            </h3>
+            <span class="text-secondary text-sm">
+                Actionable mitigation tasks prioritized by severity for detected devices on <code class="text-cyber-neon">{{ scan_target }}</code>
+            </span>
+        </div>
+        <div class="d-flex gap-2">
+            <button id="btnResetChecklist" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Checklist
+            </button>
+            <a href="{{ url_for('audit_report') }}" target="_blank" class="btn btn-cyber-primary btn-sm">
+                <i class="bi bi-printer me-1"></i> Printable Audit Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Strategic Architecture Best Practices -->
+    <div class="card bg-cyber-card border-cyber-subtle shadow-sm mb-4">
+        <div class="card-header bg-transparent border-cyber-subtle py-3">
+            <h5 class="mb-0 fw-semibold text-white d-flex align-items-center gap-2">
+                <i class="bi bi-diagram-2 text-cyber-neon"></i> Network Defense Architecture (Strategic Hardening)
+            </h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-3">
+                {% for rec in results.strategic_recommendations %}
+                <div class="col-lg-6">
+                    <div class="p-3 rounded-3 bg-dark bg-opacity-60 border border-cyber-subtle h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-cyber-pill border border-cyber-neon text-cyber-neon text-xs">{{ rec.badge }}</span>
+                            <span class="badge bg-warning bg-opacity-25 text-warning text-xs">{{ rec.importance }} Priority</span>
+                        </div>
+                        <h6 class="fw-bold text-white mb-2">{{ rec.title }}</h6>
+                        <p class="text-xs text-secondary mb-0 leading-relaxed">{{ rec.description }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Prioritized Device Remediation Checklist -->
+    <div class="card bg-cyber-card border-cyber-subtle shadow-sm mb-4">
+        <div class="card-header bg-transparent border-cyber-subtle py-3 d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0 fw-semibold text-white d-flex align-items-center gap-2">
+                    <i class="bi bi-check2-square text-cyber-neon"></i> Device Remediation Action Items
+                </h5>
+                <span class="text-xs text-secondary">Check off items as vulnerabilities are resolved on physical hardware</span>
+            </div>
+            <div class="text-xs text-secondary font-monospace" id="checklistProgressText">
+                0 / 0 Completed
+            </div>
+        </div>
+        <div class="card-body p-4">
+            {% set vuln_found = false %}
+            {% for d in results.devices %}
+                {% if d.vulnerabilities %}
+                    {% set vuln_found = true %}
+                    <div class="device-remediation-group mb-4 pb-4 border-bottom border-cyber-subtle">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="bi {{ d.icon }} text-cyber-neon fs-4"></i>
+                            <div>
+                                <h6 class="mb-0 text-white fw-bold">
+                                    <a href="{{ url_for('device_detail', ip=d.ip) }}" class="text-white text-decoration-none hover-cyber-neon">
+                                        {{ d.hostname }}
+                                    </a>
+                                    <span class="font-monospace text-xs text-cyber-neon ms-2">({{ d.ip }})</span>
+                                </h6>
+                                <span class="text-xs text-secondary">{{ d.device_type }} • {{ d.vendor }}</span>
+                            </div>
+                            <span class="badge {{ d.severity_badge }} ms-auto text-xs">{{ d.device_severity }}</span>
+                        </div>
+
+                        <div class="d-flex flex-column gap-3">
+                            {% for v in d.vulnerabilities %}
+                            <div class="remediation-item p-3 rounded-3 bg-dark bg-opacity-50 border border-cyber-subtle d-flex gap-3 align-items-start">
+                                <div class="form-check mt-1">
+                                    <input class="form-check-input remediation-checkbox" type="checkbox" id="check-{{ d.ip }}-{{ v.id }}" data-storage-key="rem-{{ d.ip }}-{{ v.id }}">
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                                        <label class="form-check-label fw-bold text-white text-sm" for="check-{{ d.ip }}-{{ v.id }}">
+                                            {{ v.title }}
+                                        </label>
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <span class="badge {% if v.severity == 'CRITICAL' %}bg-danger{% elif v.severity == 'HIGH' %}bg-warning text-dark{% else %}bg-secondary{% endif %} text-xs font-monospace">
+                                                {{ v.severity }} (CVSS {{ v.cvss }})
+                                            </span>
+                                            <span class="badge bg-cyber-pill border border-cyber-subtle text-secondary text-xs">{{ v.cve }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-secondary mb-2">{{ v.mitigation.summary }}</p>
+                                    
+                                    <div class="bg-cyber-pill p-2 rounded text-xs text-light mb-2">
+                                        <strong class="text-cyber-neon">Key Action:</strong> 
+                                        {% if v.mitigation.steps %}
+                                            {{ v.mitigation.steps[0] }}
+                                        {% endif %}
+                                    </div>
+
+                                    {% if v.mitigation.firewall_rule %}
+                                    <div class="text-xs font-monospace text-warning">
+                                        <strong>Firewall Rule:</strong> <code>{{ v.mitigation.firewall_rule }}</code>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+
+            {% if not vuln_found %}
+                <div class="text-center py-5 text-secondary">
+                    <i class="bi bi-shield-check fs-1 text-success mb-2 d-block"></i>
+                    <h5 class="text-white">Zero Vulnerabilities Pending</h5>
+                    <p class="text-sm">All discovered devices are either hardened or no open risks were identified.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // LocalStorage checklist state tracking
+    document.addEventListener("DOMContentLoaded", () => {
+        const checkboxes = document.querySelectorAll(".remediation-checkbox");
+        const progressText = document.getElementById("checklistProgressText");
+
+        function updateProgress() {
+            const total = checkboxes.length;
+            let checked = 0;
+            checkboxes.forEach(cb => {
+                const key = cb.dataset.storageKey;
+                if (localStorage.getItem(key) === "true") {
+                    cb.checked = true;
+                    checked++;
+                    cb.closest(".remediation-item").classList.add("opacity-50");
+                } else {
+                    cb.checked = false;
+                    cb.closest(".remediation-item").classList.remove("opacity-50");
+                }
+            });
+            if (progressText) {
+                progressText.innerText = `${checked} / ${total} Remediated`;
+            }
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener("change", (e) => {
+                const key = cb.dataset.storageKey;
+                localStorage.setItem(key, cb.checked ? "true" : "false");
+                updateProgress();
+            });
+        });
+
+        document.getElementById("btnResetChecklist")?.addEventListener("click", () => {
+            checkboxes.forEach(cb => {
+                localStorage.removeItem(cb.dataset.storageKey);
+            });
+            updateProgress();
+        });
+
+        updateProgress();
+    });
+</script>
+{% endblock %}

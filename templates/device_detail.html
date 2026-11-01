@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}{{ device.hostname }} | Device Security Assessment{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+    <!-- Breadcrumb & Actions -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}" class="text-cyber-neon text-decoration-none"><i class="bi bi-arrow-left me-1"></i> Dashboard</a></li>
+                <li class="breadcrumb-item active text-secondary" aria-current="page">{{ device.ip }} ({{ device.hostname }})</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('mitigations_view') }}" class="btn btn-outline-cyber btn-sm">
+                <i class="bi bi-shield-check me-1"></i> Full Remediation Checklist
+            </a>
+            <a href="{{ url_for('audit_report') }}" target="_blank" class="btn btn-cyber-primary btn-sm">
+                <i class="bi bi-printer me-1"></i> Export Audit Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Device Header Banner -->
+    <div class="card bg-cyber-card border-cyber-subtle shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="row align-items-center g-4">
+                <div class="col-auto">
+                    <div class="rounded-4 p-3 bg-cyber-pill border border-cyber-subtle text-cyber-neon d-flex align-items-center justify-content-center" style="width: 72px; height: 72px;">
+                        <i class="bi {{ device.icon }} fs-1"></i>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-8">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <h3 class="fw-bold text-white mb-0">{{ device.hostname }}</h3>
+                        <span class="badge {{ device.severity_badge }} text-uppercase px-2 py-1 text-xs">
+                            {{ device.device_severity }} RISK
+                        </span>
+                    </div>
+                    <div class="text-secondary text-sm mb-2">
+                        <span class="text-white fw-medium">{{ device.device_type }}</span> • {{ device.vendor }}
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 font-monospace text-xs text-secondary">
+                        <div><strong class="text-secondary">IP:</strong> <span class="text-cyber-neon">{{ device.ip }}</span></div>
+                        <div><strong class="text-secondary">MAC:</strong> <span class="text-light">{{ device.mac }}</span></div>
+                        <div><strong class="text-secondary">Engine:</strong> <span class="text-light">{{ device.scan_engine }}</span></div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-12 ms-auto">
+                    <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-cyber-subtle d-flex justify-content-around text-center">
+                        <div>
+                            <div class="text-xs text-secondary text-uppercase fw-semibold">Highest CVSS</div>
+                            <div class="fs-2 fw-bold font-monospace {% if device.highest_cvss >= 9.0 %}text-danger{% elif device.highest_cvss >= 7.0 %}text-warning{% elif device.highest_cvss >= 4.0 %}text-info{% else %}text-success{% endif %}">
+                                {{ device.highest_cvss if device.highest_cvss > 0 else '0.0' }}
+                            </div>
+                            <div class="text-xs text-secondary">v3.1 Base</div>
+                        </div>
+                        <div class="vr bg-secondary opacity-25"></div>
+                        <div>
+                            <div class="text-xs text-secondary text-uppercase fw-semibold">Open Ports</div>
+                            <div class="fs-2 fw-bold text-white font-monospace">{{ device.open_ports | length }}</div>
+                            <div class="text-xs text-secondary">IoT Services</div>
+                        </div>
+                        <div class="vr bg-secondary opacity-25"></div>
+                        <div>
+                            <div class="text-xs text-secondary text-uppercase fw-semibold">Flaws Found</div>
+                            <div class="fs-2 fw-bold {% if device.vulnerability_count > 0 %}text-danger{% else %}text-success{% endif %} font-monospace">
+                                {{ device.vulnerability_count }}
+                            </div>
+                            <div class="text-xs text-secondary">Action Items</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Two Column Analysis Section -->
+    <div class="row g-4">
+        
+        <!-- Left: Open Ports & Services -->
+        <div class="col-lg-5">
+            <div class="card bg-cyber-card border-cyber-subtle shadow-sm h-100">
+                <div class="card-header bg-transparent border-cyber-subtle py-3">
+                    <h5 class="mb-0 fw-semibold text-white d-flex align-items-center gap-2">
+                        <i class="bi bi-diagram-3 text-cyber-neon"></i> Exposed Services & Ports
+                    </h5>
+                    <span class="text-xs text-secondary">Listening endpoints discovered on device</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush border-0">
+                        {% for p in device.port_details %}
+                        <div class="list-group-item bg-transparent text-light border-cyber-subtle p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge {% if p.port in [21, 23, 502, 554] %}bg-danger text-white{% elif p.port in [1883, 1900] %}bg-warning text-dark{% else %}bg-secondary text-white{% endif %} font-monospace">
+                                        Port {{ p.port }}
+                                    </span>
+                                    <span class="fw-semibold text-white">{{ p.service }}</span>
+                                </div>
+                                <span class="badge bg-cyber-pill border border-cyber-subtle font-monospace text-xs text-secondary">TCP</span>
+                            </div>
+                            {% if p.banner %}
+                            <div class="text-xs text-secondary font-monospace bg-dark p-2 rounded mt-2 border border-secondary border-opacity-25 text-truncate" title="{{ p.banner }}">
+                                <i class="bi bi-terminal me-1 text-cyber-neon"></i> {{ p.banner }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Identified Vulnerabilities & Remediation Plans -->
+        <div class="col-lg-7">
+            <div class="card bg-cyber-card border-cyber-subtle shadow-sm h-100">
+                <div class="card-header bg-transparent border-cyber-subtle py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 fw-semibold text-white d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-exclamation text-danger"></i> Vulnerabilities & Remediation Steps
+                        </h5>
+                        <span class="text-xs text-secondary">Tailored mitigation recipes for detected risks</span>
+                    </div>
+                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50">
+                        {{ device.vulnerabilities | length }} Detected
+                    </span>
+                </div>
+
+                <div class="card-body p-3">
+                    {% if device.vulnerabilities %}
+                        <div class="accordion accordion-flush" id="vulnAccordion">
+                            {% for v in device.vulnerabilities %}
+                            <div class="accordion-item bg-cyber-card border border-cyber-subtle rounded-3 mb-3 overflow-hidden">
+                                <h2 class="accordion-header" id="heading-{{ loop.index }}">
+                                    <button class="accordion-button {% if not loop.first %}collapsed{% endif %} bg-cyber-card text-white shadow-none d-flex justify-content-between" 
+                                            type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ loop.index }}" aria-expanded="{{ 'true' if loop.first else 'false' }}">
+                                        <div class="d-flex align-items-center gap-2 flex-grow-1">
+                                            <span class="badge {% if v.severity == 'CRITICAL' %}bg-danger{% elif v.severity == 'HIGH' %}bg-warning text-dark{% elif v.severity == 'MEDIUM' %}bg-info text-dark{% else %}bg-secondary{% endif %} text-xs font-monospace">
+                                                {{ v.severity }}
+                                            </span>
+                                            <span class="fw-bold text-white text-sm">{{ v.title }}</span>
+                                        </div>
+                                        <span class="badge bg-dark border border-secondary text-secondary font-monospace me-3 text-xs">
+                                            CVSS {{ v.cvss }}
+                                        </span>
+                                    </button>
+                                </h2>
+                                <div id="collapse-{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" data-bs-parent="#vulnAccordion">
+                                    <div class="accordion-body bg-dark bg-opacity-50 p-4 border-top border-cyber-subtle">
+                                        
+                                        <!-- Vulnerability Metadata -->
+                                        <div class="d-flex flex-wrap gap-3 mb-3 text-xs font-monospace">
+                                            <div><strong class="text-secondary">Identifier:</strong> <span class="text-cyber-neon">{{ v.id }}</span></div>
+                                            <div><strong class="text-secondary">Reference:</strong> <span class="text-light">{{ v.cve }}</span></div>
+                                            <div><strong class="text-secondary">Category:</strong> <span class="text-light">{{ v.category }}</span></div>
+                                        </div>
+
+                                        <!-- Description & Impact -->
+                                        <div class="mb-3">
+                                            <div class="text-xs text-uppercase tracking-wider text-secondary fw-semibold mb-1">Threat Description</div>
+                                            <p class="text-sm text-light mb-2">{{ v.description }}</p>
+                                            
+                                            <div class="text-xs text-uppercase tracking-wider text-danger fw-semibold mb-1">Security Impact</div>
+                                            <p class="text-sm text-secondary mb-0">{{ v.impact }}</p>
+                                        </div>
+
+                                        <!-- Actionable Mitigation Guide -->
+                                        <div class="mitigation-box p-3 rounded-3 bg-cyber-pill border border-cyber-neon border-opacity-25 mt-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <h6 class="mb-0 fw-bold text-cyber-neon d-flex align-items-center gap-2">
+                                                    <i class="bi bi-tools"></i> {{ v.mitigation.title }}
+                                                </h6>
+                                                <span class="badge bg-cyber-neon text-dark text-xs fw-bold">{{ v.mitigation.priority }}</span>
+                                            </div>
+                                            <p class="text-xs text-secondary mb-3">{{ v.mitigation.summary }}</p>
+
+                                            <!-- Step by step instructions -->
+                                            <div class="text-xs text-uppercase tracking-wider text-light fw-semibold mb-2">Remediation Steps:</div>
+                                            <ol class="text-sm text-light ps-3 mb-3">
+                                                {% for step in v.mitigation.steps %}
+                                                <li class="mb-1">{{ step }}</li>
+                                                {% endfor %}
+                                            </ol>
+
+                                            <!-- CLI / Config commands if present -->
+                                            {% if v.mitigation.configuration_commands %}
+                                            <div class="text-xs text-uppercase tracking-wider text-secondary fw-semibold mb-1">Configuration Snippet / Command:</div>
+                                            <div class="bg-dark p-2 rounded border border-secondary border-opacity-25 font-monospace text-xs text-cyber-neon mb-3">
+                                                {% for cmd in v.mitigation.configuration_commands %}
+                                                <div>{{ cmd }}</div>
+                                                {% endfor %}
+                                            </div>
+                                            {% endif %}
+
+                                            <!-- Firewall rule recommendation -->
+                                            {% if v.mitigation.firewall_rule %}
+                                            <div class="text-xs text-uppercase tracking-wider text-warning fw-semibold mb-1">Firewall Defense Rule:</div>
+                                            <div class="bg-dark p-2 rounded border border-warning border-opacity-25 font-monospace text-xs text-warning">
+                                                <code>{{ v.mitigation.firewall_rule }}</code>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 text-secondary">
+                            <i class="bi bi-shield-check fs-1 text-success mb-2 d-block"></i>
+                            <h5 class="text-white">Device Appears Hardened</h5>
+                            <p class="text-sm">No critical or high-risk IoT vulnerability signatures were triggered on this host.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

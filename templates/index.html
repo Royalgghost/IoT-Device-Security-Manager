@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | IoT Device Security Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+    <!-- Top Alert / Nmap Status Banner -->
+    {% if not nmap_available %}
+    <div class="alert alert-cyber-info d-flex align-items-center justify-content-between p-3 mb-4 rounded-3 border border-info border-opacity-25" role="alert">
+        <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-info-circle-fill text-info fs-4"></i>
+            <div>
+                <strong>Nmap binary not detected in PATH.</strong>
+                <span class="text-secondary text-sm d-block d-md-inline ms-md-1">
+                    Running in <strong>Native High-Speed Socket & Simulated Lab Mode</strong>. To enable raw Nmap engine, install via: <code class="text-cyber-neon bg-dark px-2 py-0.5 rounded">winget install -e --id Insecure.Nmap</code>
+                </span>
+            </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Scan Control Center -->
+    <div class="card bg-cyber-card border-cyber-subtle shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="row g-3 align-items-center">
+                <div class="col-lg-5 col-md-6">
+                    <label class="form-label text-xs text-uppercase tracking-wider text-secondary fw-semibold mb-1">
+                        <i class="bi bi-broadcast me-1 text-cyber-neon"></i> Target IP / Subnet (CIDR)
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-cyber-pill border-cyber-subtle text-secondary font-monospace">
+                            <i class="bi bi-hdd-network"></i>
+                        </span>
+                        <input type="text" id="targetInput" class="form-control bg-cyber-input border-cyber-subtle text-white font-monospace" 
+                               value="{{ net_info.subnet_cidr if net_info else '192.168.1.0/24' }}" placeholder="e.g. 192.168.1.0/24 or 127.0.0.1">
+                        <button class="btn btn-outline-secondary dropdown-toggle border-cyber-subtle text-xs" type="button" data-bs-toggle="dropdown">
+                            Presets
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end bg-cyber-card border-cyber-subtle">
+                            <li><a class="dropdown-item preset-option" href="#" data-target="{{ net_info.subnet_cidr }}">Detected Subnet ({{ net_info.subnet_cidr }})</a></li>
+                            <li><a class="dropdown-item preset-option" href="#" data-target="{{ net_info.local_ip }}">Local Host ({{ net_info.local_ip }})</a></li>
+                            <li><a class="dropdown-item preset-option" href="#" data-target="127.0.0.1">Loopback (127.0.0.1)</a></li>
+                            <li><hr class="dropdown-divider border-secondary"></li>
+                            <li><a class="dropdown-item preset-option text-cyber-neon" href="#" data-target="demo-lab"><i class="bi bi-lightning-fill me-1"></i> Virtual IoT Lab (Demo Network)</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label text-xs text-uppercase tracking-wider text-secondary fw-semibold mb-1">
+                        <i class="bi bi-gear-wide-connected me-1 text-cyber-neon"></i> Scanner Engine
+                    </label>
+                    <select id="scanModeSelect" class="form-select bg-cyber-input border-cyber-subtle text-white">
+                        <option value="socket" selected>Fast Python Socket Scanner</option>
+                        <option value="nmap" {% if not nmap_available %}title="Nmap will fallback to socket if binary not in PATH"{% endif %}>
+                            Nmap PortScanner {% if nmap_available %}(Ready){% else %}(Fallback Mode){% endif %}
+                        </option>
+                        <option value="demo">Virtual IoT Simulation Lab (Pre-loaded)</option>
+                    </select>
+                </div>
+
+                <div class="col-lg-4 col-md-12 d-flex gap-2 align-items-end pt-md-2 pt-lg-0">
+                    <button id="btnStartScan" class="btn btn-cyber-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2 py-2">
+                        <i class="bi bi-play-circle-fill fs-5"></i>
+                        <span class="fw-semibold">Scan Network</span>
+                    </button>
+                    <button id="btnDemoLab" class="btn btn-outline-cyber d-flex align-items-center gap-2 py-2" title="Load pre-configured vulnerable IoT test devices">
+                        <i class="bi bi-cpu"></i>
+                        <span>Demo Lab</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Scan Progress Bar (dynamically toggled) -->
+            <div id="scanProgressCard" class="mt-4 pt-3 border-top border-cyber-subtle" style="display: {% if scan_state.is_scanning %}block{% else %}none{% endif %};">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="spinner-grow spinner-grow-sm text-cyber-neon" role="status"></div>
+                        <span id="scanStatusText" class="text-sm font-monospace text-cyber-neon fw-medium">{{ scan_state.status_message }}</span>
+                    </div>
+                    <span id="scanPercentText" class="font-monospace fw-bold text-white">{{ scan_state.progress }}%</span>
+                </div>
+                <div class="progress bg-cyber-pill border border-cyber-subtle" style="height: 10px;">
+                    <div id="scanProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-cyber-gradient" 
+                         role="progressbar" style="width: {{ scan_state.progress }}%;"></div>
+                </div>
+                <div class="mt-3">
+                    <div class="terminal-log bg-dark p-2 rounded border border-secondary border-opacity-25 font-monospace text-xs text-secondary" id="scanTerminalLogs" style="max-height: 90px; overflow-y: auto;">
+                        {% for log in scan_state.logs %}
+                        <div>{{ log }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Executive Metrics Row -->
+    <div class="row g-3 mb-4">
+        <!-- Security Posture Score -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-cyber-card border-cyber-subtle h-100 p-3 position-relative overflow-hidden stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-xs text-uppercase tracking-wider text-secondary fw-semibold">Security Posture</span>
+                        <div class="d-flex align-items-baseline gap-2 mt-2">
+                            <h2 class="display-5 fw-bold mb-0" id="statSecurityScore" style="color: {{ results.score_color }};">
+                                {{ results.security_score }}
+                            </h2>
+                            <span class="text-secondary text-sm">/ 100</span>
+                        </div>
+                        <span class="badge mt-2 px-2 py-1" id="statScoreBadge" style="background-color: {{ results.score_color }}22; color: {{ results.score_color }}; border: 1px solid {{ results.score_color }}55;">
+                            {{ results.score_status }}
+                        </span>
+                    </div>
+                    <div class="stat-icon-wrapper rounded-circle p-3" style="background: rgba(16, 185, 129, 0.1);">
+                        <i class="bi bi-shield-fill-check fs-3 text-cyber-neon"></i>
+                    </div>
+                </div>
+                <div class="stat-glow" style="background: radial-gradient(circle, {{ results.score_color }}22 0%, transparent 70%);"></div>
+            </div>
+        </div>
+
+        <!-- Discovered Devices -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-cyber-card border-cyber-subtle h-100 p-3 stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-xs text-uppercase tracking-wider text-secondary fw-semibold">Discovered Devices</span>
+                        <h2 class="display-5 fw-bold mb-0 text-white mt-2" id="statTotalDevices">{{ results.total_devices }}</h2>
+                        <span class="text-xs text-secondary d-block mt-2">
+                            <span class="text-success fw-semibold" id="statSecureDevices">{{ results.secure_devices }}</span> hardened / clean
+                        </span>
+                    </div>
+                    <div class="stat-icon-wrapper rounded-circle p-3" style="background: rgba(59, 130, 246, 0.1);">
+                        <i class="bi bi-hdd-network-fill fs-3 text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Critical Vulnerabilities -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-cyber-card border-cyber-subtle h-100 p-3 stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-xs text-uppercase tracking-wider text-danger fw-semibold">Critical Risks</span>
+                        <h2 class="display-5 fw-bold mb-0 text-danger mt-2" id="statCriticalCount">{{ results.critical_count }}</h2>
+                        <span class="text-xs text-secondary d-block mt-2">Immediate remediation needed</span>
+                    </div>
+                    <div class="stat-icon-wrapper rounded-circle p-3" style="background: rgba(239, 68, 68, 0.15);">
+                        <i class="bi bi-exclamation-octagon-fill fs-3 text-danger"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- High Vulnerabilities -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-cyber-card border-cyber-subtle h-100 p-3 stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-xs text-uppercase tracking-wider text-warning fw-semibold">High Risks</span>
+                        <h2 class="display-5 fw-bold mb-0 text-warning mt-2" id="statHighCount">{{ results.high_count }}</h2>
+                        <span class="text-xs text-secondary d-block mt-2">Medium / Low: {{ results.medium_count }} / {{ results.low_count }}</span>
+                    </div>
+                    <div class="stat-icon-wrapper rounded-circle p-3" style="background: rgba(245, 158, 11, 0.15);">
+                        <i class="bi bi-exclamation-triangle-fill fs-3 text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts & Intelligence Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="card bg-cyber-card border-cyber-subtle h-100 shadow-sm">
+                <div class="card-header bg-transparent border-cyber-subtle py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-semibold text-white d-flex align-items-center gap-2">
+                        <i class="bi bi-pie-chart text-cyber-neon"></i> Vulnerability Severity Breakdown
+                    </h6>
+                    <span class="text-xs text-secondary">Total: {{ results.total_vulnerabilities }}</span>
+                </div>
+                <div class="card-body d-flex justify-content-center align-items-center p-3" style="height: 250px;">
+                    <canvas id="vulnSeverityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card bg-cyber-card border-cyber-subtle h-100 shadow-sm">
+                <div class="card-header bg-transparent border-cyber-subtle py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-semibold text-white d-flex align-items-center gap-2">
+                        <i class="bi bi-bar-chart-line text-cyber-neon"></i> IoT Device Classification
+                    </h6>
+                    <span class="text-xs text-secondary">Types identified</span>
+                </div>
+                <div class="card-body p-3" style="height: 250px;">
+                    <canvas id="deviceCategoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Discovered Devices Inventory Section -->
+    <div class="card bg-cyber-card border-cyber-subtle shadow-sm mb-4">
+        <div class="card-header bg-transparent border-cyber-subtle py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h5 class="mb-0 fw-semibold text-white d-flex align-items-center gap-2">
+                    <i class="bi bi-hdd-stack text-cyber-neon"></i> Discovered IoT Devices & Assets
+                </h5>
+                <span class="text-xs text-secondary">Inspected targets on {{ scan_state.target or 'Network' }}</span>
+            </div>
+            
+            <div class="d-flex align-items-center gap-2">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-cyber-pill border-cyber-subtle text-secondary"><i class="bi bi-search"></i></span>
+                    <input type="text" id="deviceSearchInput" class="form-control bg-cyber-input border-cyber-subtle text-white" placeholder="Filter by IP, vendor, type...">
+                </div>
+                <select id="severityFilter" class="form-select form-select-sm bg-cyber-input border-cyber-subtle text-white" style="width: 140px;">
+                    <option value="ALL">All Severities</option>
+                    <option value="CRITICAL">Critical Only</option>
+                    <option value="HIGH">High Only</option>
+                    <option value="MEDIUM">Medium Only</option>
+                    <option value="SECURE">Hardened / Secure</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0 border-cyber-subtle" id="deviceTable">
+                    <thead class="table-cyber-head text-secondary text-xs text-uppercase tracking-wider">
+                        <tr>
+                            <th class="ps-4">Device / Type</th>
+                            <th>IP & MAC Address</th>
+                            <th>Manufacturer / Vendor</th>
+                            <th>Open IoT Ports</th>
+                            <th>Risk Posture</th>
+                            <th>CVSS</th>
+                            <th class="text-end pe-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deviceTableBody">
+                        {% if results.devices %}
+                            {% for d in results.devices %}
+                            <tr class="device-row" data-severity="{{ d.device_severity }}" data-search="{{ d.ip }} {{ d.hostname }} {{ d.vendor }} {{ d.device_type }}">
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="device-avatar rounded-3 p-2 bg-cyber-pill border border-cyber-subtle text-cyber-neon">
+                                            <i class="bi {{ d.icon }} fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <a href="{{ url_for('device_detail', ip=d.ip) }}" class="fw-semibold text-white text-decoration-none hover-cyber-neon">
+                                                {{ d.hostname }}
+                                            </a>
+                                            <div class="text-xs text-secondary">{{ d.device_type }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="font-monospace text-sm text-cyber-neon fw-semibold">{{ d.ip }}</div>
+                                    <div class="font-monospace text-xs text-secondary">{{ d.mac }}</div>
+                                </td>
+                                <td>
+                                    <div class="text-sm text-light">{{ d.vendor }}</div>
+                                    <span class="badge bg-cyber-pill text-secondary text-xs border border-cyber-subtle">{{ d.confidence }} Confidence</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1" style="max-width: 200px;">
+                                        {% for p in d.open_ports %}
+                                        <span class="badge {% if p in [23, 502, 554] %}bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50{% elif p in [1883, 1900] %}bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50{% else %}bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-50{% endif %} font-monospace text-xs">
+                                            {{ p }}
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge {{ d.severity_badge }} text-uppercase px-2 py-1 text-xs">
+                                        {{ d.device_severity }}
+                                    </span>
+                                    {% if d.vulnerability_count > 0 %}
+                                    <span class="text-xs text-secondary ms-1">({{ d.vulnerability_count }} flaws)</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="font-monospace fw-bold {% if d.highest_cvss >= 9.0 %}text-danger{% elif d.highest_cvss >= 7.0 %}text-warning{% elif d.highest_cvss >= 4.0 %}text-info{% else %}text-success{% endif %}">
+                                        {{ d.highest_cvss if d.highest_cvss > 0 else '0.0' }}
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('device_detail', ip=d.ip) }}" class="btn btn-outline-cyber" title="Detailed device inspection">
+                                            <i class="bi bi-shield-exclamation me-1"></i> Inspect & Fix
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-secondary">
+                                    <i class="bi bi-radar fs-1 text-secondary mb-3 d-block"></i>
+                                    <h5>No IoT Devices Found Yet</h5>
+                                    <p class="text-sm">Enter your target network subnet above and click "Scan Network" or try the "Virtual IoT Lab" demo.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Pass backend data to JavaScript for Charts -->
+<script>
+    const INITIAL_CHART_DATA = {
+        severities: {
+            critical: {{ results.critical_count }},
+            high: {{ results.high_count }},
+            medium: {{ results.medium_count }},
+            low: {{ results.low_count }},
+            secure: {{ results.secure_devices }}
+        },
+        categories: {{ results.device_categories | tojson | safe }}
+    };
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}
