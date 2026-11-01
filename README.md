@@ -3,7 +3,7 @@
 An enterprise-grade, lightweight web application developed with **Python**, **Nmap**, and **Flask** designed to discover IoT devices on a network, interrogate open services, identify security vulnerabilities and known CVEs, and generate prioritized, actionable mitigation steps.
 
 ![image alt](https://github.com/Royalgghost/IoT-Device-Security-Manager/blob/main/Capture%20d'%C3%A9cran%202026-11-01%20025243.png?raw=true)
-![image alt](https://github.com/Royalgghost/IoT-Device-Security-Manager/blob/main/Capture%20d'%C3%A9cran%202026-11-01%20025243.png?raw=true)
+![image alt]([https://github.com/Royalgghost/IoT-Device-Security-Manager/blob/main/Capture%20d'%C3%A9cran%202026-11-01%20025243.png?raw=true](https://github.com/Royalgghost/IoT-Device-Security-Manager/blob/main/Capture%20d'%C3%A9cran%202026-11-01%20025250.png?raw=true))
 ---
 
 ## 🚀 Key Features
